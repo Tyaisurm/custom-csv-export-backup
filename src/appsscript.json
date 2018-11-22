@@ -1,0 +1,7 @@
+﻿{
+  "timeZone": "Europe/Helsinki",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/forms.currentonly", "https://www.googleapis.com/auth/script.container.ui"]
+}
