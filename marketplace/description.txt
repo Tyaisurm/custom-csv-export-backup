@@ -1,0 +1,34 @@
+== name ==
+Custom CSV Export
+
+== desc ==
+This add-on's purpose is to provide customizable CSV export option for Forms survey responses, while keeping it relatively simple.
+
+== install tip ==
+You can open the add-on menu from top right corner. You can edit export options and initiate the export itself from 'Control Panel', found via menu.
+
+Remember to save settings before export, so that contents of generated csv-files are as you want them.
+
+== full desc ==
+# THIS IS AN ADD-ON FOR FORMS #
+
+Custom CSV Export add-on provides a solution to export survey answers straight from Forms into customizable csv-files, so that you can use them more easily with, for example, statistical analysis software.
+
+Since I was unable to find an easy way to export Forms survey responses into csv-files to be used later on, this add-on was born.
+
+This add-on works like this:
+- Enable and open add-on in Forms you want to export
+- Open add-on's Control Panel
+- Edit settings such as "use timestamps" or "use answer indexes (numbers instead of text)" to customize your csv-file's contents
+- Press "Export", and your csv-file will be generated and placed into your Drive's root, under "Custom CSV Export" folder
+
+
+== domain ==
+https://tyaisurm.github.io
+https://tyaisurm.github.io/apps/ccsve.html
+
+== other settings ==
+-not listed
+-all regions
+-utility
+-Consent Screen under review

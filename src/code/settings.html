@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <link
+      rel="stylesheet"
+      href="https://ssl.gstatic.com/docs/script/css/add-ons1.css"
+    />
+    <!-- The CSS package above applies Google styling to buttons and other elements. -->
+  </head>
+  <body>
+    <div class="sidebar branding-below" id="normal-view" style="height:100%;">
+      <!---<form>--->
+      <div style="display:none;" class="block" id="settings-view">
+        <h2>Edit or set defaults, and click 'Save settings'</h2>
+        <!-- SETTINGS LISTED HERE! 
+        select
+        -separator
+        -newline
+        
+        tickbox
+        -escapeCode
+        -useIndexes
+        -useTitleRow
+        -useEmail
+        -useTimeStamp
+        -useID
+        -->
+        <label for="sel-separators" id="sel-separators-label"
+          >Main separator / Secondary separator</label
+        >
+        <select style="width:100%; box-sizing: border-box;" id="sel-separators">
+          <option value="0"> , / ; </option>
+          <option value="1"> ; / ,</option>
+        </select>
+        <label for="sel-newline">Newline</label>
+        <select style="width:100%; box-sizing: border-box;" id="sel-newline">
+          <option value="0"> \r\n </option>
+          <option value="1"> \n </option>
+        </select>
+        <div style="margin-top:20px;">
+          <input type="checkbox" id="cb-escape-code" />
+          <label for="cb-escape-code">Escape code strings</label>
+        </div>
+        <div>
+          <input type="checkbox" id="cb-use-indexes" />
+          <label for="cb-use-indexes" id="cb-use-indexes-label"
+            >Use indexes instead of strings</label
+          >
+        </div>
+        <div>
+          <input type="checkbox" id="cb-use-titlerow" />
+          <label for="cb-use-titlerow">Insert title row</label>
+        </div>
+        <div>
+          <input type="checkbox" id="cb-use-emails" />
+          <label for="cb-use-emails">Use respondant email addresses</label>
+        </div>
+        <div>
+          <input type="checkbox" id="cb-use-timestamp" />
+          <label for="cb-use-timestamp">Use response timestamps</label>
+        </div>
+        <div>
+          <input type="checkbox" id="cb-use-id" />
+          <label for="cb-use-id">Use response IDs</label>
+        </div>
+        <div>
+          <input
+            type="checkbox"
+            id="cb-statistical"
+            onClick="toggleOverrideNotification(this.checked);"
+          />
+          <label for="cb-statistical" id="cb-statistical-label"
+            >Format for statistical software
+            <span style="color:red;">(Overrides some settings)</span></label
+          >
+        </div>
+
+        <div style="margin-top:20px;" class="block" id="button-bar">
+          <button style="" class="create" id="reset-settings">RESET</button>
+          <button style="" class="share" id="save-settings">
+            Save settings
+          </button>
+          <button style="" class="action" id="return-settings">Return</button>
+        </div>
+      </div>
+
+      <div style="display:flex; height:100%;" id="export-view">
+        <div style="margin:auto;">
+          <button style="" class="action" id="edit-settings">
+            Edit settings
+          </button>
+          <button style="" class="create" id="run-export">Export</button>
+        </div>
+      </div>
+
+      <!---</form>--->
+    </div>
+    <div class="sidebar branding-below" id="auth-view" style="display:none;">
+      <form>
+        <div style="" class="block" id="">
+          <p>Authentication needed!</p>
+        </div>
+        <div class="block" id="button-bar-2">
+          <button style="" class="action" id="reauth-button">
+            Authenticate AddOn
+          </button>
+        </div>
+      </form>
+    </div>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script>
+      /**
+       * On document load, assign required handlers to each element,
+       * and attempt to load any saved settings.
+       */
+      $(function() {
+        $("#save-settings").click(saveSettingsToServer);
+        $("#reset-settings").click(resetSettingsToServer);
+        $("#edit-settings").click({ param1: 0 }, showEditView);
+        $("#run-export").click(runExportScript);
+        $("#return-settings").click({ param1: 1 }, showEditView);
+        //running = true;
+        google.script.run
+          .withSuccessHandler(loadSettings)
+          .withFailureHandler(showStatus)
+          .withUserObject($("#button-bar").get())
+          .getSettings();
+      });
+
+      function showEditView(data) {
+        switch (data.data.param1) {
+          case 0:
+            // load settings here?
+            $("#settings-view").css("display", "block");
+            $("#export-view").css("display", "none");
+            break;
+          case 1:
+            $("#settings-view").css("display", "none");
+            $("#export-view").css("display", "flex");
+            break;
+          default:
+            $("#settings-view").css("display", "block");
+            $("#export-view").css("display", "none");
+        }
+        return 0;
+      }
+
+      function runExportScript() {
+        google.script.run
+          .withSuccessHandler(exportSuccess)
+          .withFailureHandler(showStatus)
+          .withUserObject($("#button-bar").get())
+          .exportRun();
+
+        return 0;
+      }
+      function exportSuccess() {
+        return 0;
+      }
+
+      // returns true or false based on input; defaults to 'false' as failsafe
+      function parseBool(thisval, mode) {
+        switch (mode) {
+          case 0:
+            mode = false;
+            break;
+          case 1:
+            mode = true;
+            break;
+          default:
+            mode = false;
+        }
+        if (thisval === undefined) {
+          return mode;
+        }
+        var returnBool =
+          thisval === "true" ? true : thisval === "false" ? false : thisval;
+        if (returnBool != true && returnBool != false) {
+          returnBool = mode;
+        }
+        return returnBool;
+      }
+
+      function toggleOverrideNotification(enabled) {
+        // bool enabled if the override notification is enabled or not
+        enabled = parseBool(enabled);
+        if (!enabled) {
+          $("#cb-use-indexes-label").html("Use indexes instead of strings");
+          $("#sel-separators-label").html(
+            "Main separator / Secondary separator"
+          );
+        } else {
+          $("#cb-use-indexes-label").html(
+            'Use indexes instead of strings <span style="color:red;">OVERRIDE</span>'
+          );
+          $("#sel-separators-label").html(
+            'Main separator / Secondary separator <span style="color:red;">OVERRIDE</span>'
+          );
+        }
+
+        return 0;
+      }
+
+      function loadSettings(settings) {
+        var separator = Number.parseInt(settings.separator);
+        var newline = Number.parseInt(settings.newline);
+        if (isNaN(separator)) {
+          separator = 0;
+        }
+        if (isNaN(newline)) {
+          newline = 0;
+        }
+        $("#sel-separators").val(separator);
+        $("#sel-newline").val(newline);
+        //escape code
+        if (parseBool(settings.escapeCode)) {
+          $("#cb-escape-code").prop("checked", "checked");
+        } else {
+          $("#cb-escape-code").removeProp("checked");
+        }
+        // indexes
+        if (parseBool(settings.useIndexes)) {
+          $("#cb-use-indexes").prop("checked", "checked");
+        } else {
+          $("#cb-use-indexes").removeProp("checked");
+        }
+        //titlerow
+        if (parseBool(settings.useTitleRow)) {
+          $("#cb-use-titlerow").prop("checked", "checked");
+        } else {
+          $("#cb-use-titlerow").removeProp("checked");
+        }
+        //emails
+        if (parseBool(settings.useEmail)) {
+          $("#cb-use-emails").prop("checked", "checked");
+        } else {
+          $("#cb-use-emails").removeProp("checked");
+        }
+        //timestamp
+        if (parseBool(settings.useTimeStamp)) {
+          $("#cb-use-timestamp").prop("checked", "checked");
+        } else {
+          $("#cb-use-timestamp").removeProp("checked");
+        }
+        //IDs
+        if (parseBool(settings.useID)) {
+          $("#cb-use-id").prop("checked", "checked");
+        } else {
+          $("#cb-use-id").removeProp("checked");
+        }
+        //cb-statistical
+        if (parseBool(settings.statistical)) {
+          $("#cb-statistical").prop("checked", "checked");
+          toggleOverrideNotification(true);
+        } else {
+          $("#cb-statistical").removeProp("checked");
+          toggleOverrideNotification(false);
+        }
+        //running = false;
+        return 0;
+      }
+
+      function resetSettingsToServer() {
+        google.script.run
+          .withSuccessHandler(resetSuccess)
+          .withFailureHandler(showStatus)
+          .withUserObject($("#button-bar").get())
+          .resetSettings();
+
+        return 0;
+      }
+      function resetSuccess(status) {
+        google.script.run
+          .withSuccessHandler(loadSettings)
+          .withFailureHandler(showStatus)
+          .withUserObject($("#button-bar").get())
+          .getSettings();
+        return 0;
+      }
+      /**
+       * Collects the options specified in the add-on sidebar and sends them to
+       * be saved as Properties on the server.
+       */
+      function saveSettingsToServer() {
+        var separator = Number.parseInt($("#sel-separators").val());
+        var escapeCode = $("#cb-escape-code").prop("checked");
+        var useDoubleQuotes = true;
+        var useIndexes = $("#cb-use-indexes").prop("checked");
+        var useTitleRow = $("#cb-use-titlerow").prop("checked");
+        var useEmail = $("#cb-use-emails").prop("checked");
+        var useTimeStamp = $("#cb-use-timestamp").prop("checked");
+        var useID = $("#cb-use-id").prop("checked");
+        var newline = Number.parseInt($("#sel-newline").val());
+        var statistical = $("#cb-statistical").prop("checked");
+
+        if (isNaN(newline)) {
+          newline = 0;
+        }
+        if (isNaN(separator)) {
+          separator = 0;
+        }
+        var settings = {};
+        settings.separator = separator;
+        settings.escapeCode = escapeCode;
+        settings.useDoubleQuotes = useDoubleQuotes;
+        settings.useIndexes = useIndexes;
+        settings.useTitleRow = useTitleRow;
+        settings.useEmail = useEmail;
+        settings.useTimeStamp = useTimeStamp;
+        settings.useID = useID;
+        settings.newline = newline;
+        settings.statistical = statistical;
+
+        // Save the settings on the server
+        google.script.run
+          .withSuccessHandler(function(msg, element) {})
+          .withFailureHandler(showStatus)
+          .withUserObject(this)
+          .setSettings(settings);
+      }
+
+      /**
+       * Inserts a div that contains an status message after a given element.
+       *
+       * @param {String} msg The status message to display.
+       * @param {Object} element The element after which to display the Status.
+       */
+      function showStatus(msg, element) {
+        google.script.run
+          .withSuccessHandler(function(msg, element) {})
+          .withFailureHandler(function(msg, element) {})
+          .withUserObject(this)
+          .controlpanelfail();
+
+        return 0;
+      }
+    </script>
+  </body>
+</html>
