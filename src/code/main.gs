@@ -1703,6 +1703,7 @@ function getSettings(mode){
   var settings = PropertiesService.getUserProperties().getProperties();
   if(mode != undefined && mode === 1){
     if(!settings.running){// if operation is currently underway
+      if(LOGENAB){console.log("Settings.running does not exist! Setting it to 'false'...");}
       settings.running = false;
     }
     return settings.running;
@@ -2036,9 +2037,8 @@ function downloadFile( to_file_data ){// Called after string is complete, to sav
     }
   }
   */
-    
+  if(LOGENAB){console.log("Filename set as: ",custfilnam);}
   var myblob = Utilities.newBlob(to_file_data, 'text/csv', custfilnam)
-  
 //  var file = folderz.createFile(myblob);
   
   // Check folders, and if something is named "Custom CSV Export". If found, check if this app can access it. Select accessible as target, otherwise create new folder
@@ -2046,12 +2046,13 @@ function downloadFile( to_file_data ){// Called after string is complete, to sav
     q : "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
   }).items;
   var folderMeta = {mimeType : 'application/vnd.google-apps.folder', title: "Custom CSV Export"};
-  
+  if(LOGENAB){console.log("Non-trashed folders found: ",folderlist.length);}
   var folderId = "";
   
   if(folderlist.length > 0){
     // create new folder
     // check folders for correct
+    if(LOGENAB){console.log("Checking folders...");}
     var check = false;
     for(var fi = 0;fi<folderlist.length;fi++){
       // check this folder name
@@ -2060,7 +2061,7 @@ function downloadFile( to_file_data ){// Called after string is complete, to sav
       //Logger.log(folderlist[fi].title);
       //Logger.log(folderlist[fi].id);
       
-      if(folderlist[fi].title == "Custom CSV Export"){check = true;}
+      if(folderlist[fi].title == "Custom CSV Export"){check = true;if(LOGENAB){console.log("Folder with 'Custom CSV Export' found!");}}
       
       if(check){
         folderId = folderlist[fi].id;
@@ -2069,10 +2070,12 @@ function downloadFile( to_file_data ){// Called after string is complete, to sav
     }
     if(!check){
       // create folder
+      if(LOGENAB){console.log("No folder with name 'Custom CSV Export' found! Creating new...");}
       folderId = Drive.Files.insert(folderMeta).id;
     }
   } else{
     // create folder
+    if(LOGENAB){console.log("No folders with access! Creating new...");}
     folderId = Drive.Files.insert(folderMeta).id;
   }
   
@@ -2092,7 +2095,7 @@ function downloadFile( to_file_data ){// Called after string is complete, to sav
   var fileName = custfilnam+'.csv';
   
   var downurl = "https://drive.google.com/uc?export=download&id="+fileID
-  
+  if(LOGENAB){console.log("Showing user download prompt...");}
   var downlui = HtmlService.createHtmlOutput('<html><head><base target="_top"><link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css"></head><body><p>File has been exported to your Google Drive root folder named "Custom CSV Export".</p><p> View file there, or download the file by clicking the link below. </p> <p><a href="'+downurl+'" target="blank" onclick="google.script.host.close()"><b>Download file "'+fileName+'"</b></a></p></body></html>');
   FormApp.getUi().showModalDialog(downlui, "Custom CSV Export - File download");  
 }
