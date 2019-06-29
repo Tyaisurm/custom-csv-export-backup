@@ -1842,13 +1842,14 @@ function onOpen(e) {// Needed to be used with AddOn (creates menu)
   
   if(LOGENAB){console.log(e.authMode);}
   if(e && e.authMode == ScriptApp.AuthMode.NONE){
-    // Get authorization
+    // Authorization needed
     if(LOGENAB){console.log("# Authorization required!");}
     FormApp.getUi()
   .createAddonMenu()
   .addItem('Authorize', 'authorizeAddon')
   .addToUi();
   } else {
+    // Authorization not needed
     if(LOGENAB){console.log("# Authorization was not NONE!");}
     FormApp.getUi()
   .createAddonMenu()
@@ -1867,9 +1868,9 @@ function authorizeAddon(){
   var authInfo = ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL);
   //Logger.log(authInfo.getAuthorizationStatus());
   if(authInfo.getAuthorizationStatus() == ScriptApp.AuthorizationStatus.REQUIRED){
-    //("WAS NOT AUTHORIZED");
+    //("AUTH REQUIRED");
   } else{
-    //("WAS NOT REQUIRED");
+    //("AUTH NOT REQUIRED");
     FormApp.getUi()
   .createAddonMenu()
   .addItem('Control Panel', 'showControlPanel')
@@ -1914,6 +1915,7 @@ function onInstall(e) {
 
 function controlpanelfail(){
   if(LOGENAB){console.log("Failure happened in control panel!");}
+  if(parseBool(getSettings(1))){runningNotification();}// notify that currently running
 }
 
 /* Test function that runs custom functions (DEV USE ONLY) */
@@ -1923,12 +1925,7 @@ function exportRun(){
   var rescounter = FormApp.getActiveForm().getResponses().length;
   if(parseBool(status)){
     if(LOGENAB){console.log("Currently running! Unable to start...");}
-    //var response = FormApp.getUi().alert("Please wait for other operations to finish before trying to export!")
-    var htmlOutput = HtmlService
-    .createHtmlOutput('<p>Please wait for other operations to finish before trying to export again! If you think this is an error, please "Reset running status" from the add-on menu, and try exporting again :)</p>')
-    .setWidth(250)
-    .setHeight(100);
-    FormApp.getUi().showModalDialog(htmlOutput, 'Unable to start export!');
+    runningNotification();
     return false;
   } else if(rescounter == 0){
     //test if there are any answers
@@ -1958,6 +1955,14 @@ function exportRun(){
   return true;
 }
 
+function runningNotification(){
+  //var response = FormApp.getUi().alert("Please wait for other operations to finish before trying to export!")
+    var htmlOutput = HtmlService
+    .createHtmlOutput('<p>Running, please wait! If you think this is an error, please "Reset running status" from add-on menu, and try again :)</p>')
+    .setWidth(250)
+    .setHeight(100);
+    FormApp.getUi().showModalDialog(htmlOutput, 'Unable to start export!');
+}
 
 /**
  * Opens a sidebar in the form containing the add-on's user interface for
@@ -1995,7 +2000,7 @@ function downloadFile( to_file_data ){// Called after string is complete, to sav
   var custfilnam = "custom_csv_export_"+datestring;
   
   // Checking if folder exists in user's Drive root. If not, creating it...
-  
+  /*
   var folders = DriveApp.getRootFolder().getFolders();
   var check = false;
   var folderz = null;
@@ -2030,15 +2035,82 @@ function downloadFile( to_file_data ){// Called after string is complete, to sav
       break;
     }
   }
-  
+  */
     
   var myblob = Utilities.newBlob(to_file_data, 'text/csv', custfilnam)
-  var file = folderz.createFile(myblob);
+  
+//  var file = folderz.createFile(myblob);
+  
+  // Check folders, and if something is named "Custom CSV Export". If found, check if this app can access it. Select accessible as target, otherwise create new folder
+  var folderlist = Drive.Files.list({
+    q : "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+  }).items;
+  var folderMeta = {mimeType : 'application/vnd.google-apps.folder', title: "Custom CSV Export"};
+  
+  var folderId = "";
+  
+  if(folderlist.length > 0){
+    // create new folder
+    // check folders for correct
+    var check = false;
+    for(var fi = 0;fi<folderlist.length;fi++){
+      // check this folder name
+      
+      //Logger.log(folderlist[fi].isAppAuthorized);
+      //Logger.log(folderlist[fi].title);
+      //Logger.log(folderlist[fi].id);
+      
+      if(folderlist[fi].title == "Custom CSV Export"){check = true;}
+      
+      if(check){
+        folderId = folderlist[fi].id;
+        break;
+      }
+    }
+    if(!check){
+      // create folder
+      folderId = Drive.Files.insert(folderMeta).id;
+    }
+  } else{
+    // create folder
+    folderId = Drive.Files.insert(folderMeta).id;
+  }
+  
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  var parentMeta = {'id': folderId};
+  var fileMeta = {
+    title: custfilnam,
+    mimeType: 'text/csv',
+    parents: [parentMeta]
+  };
+  
+  var file = Drive.Files.insert(fileMeta, myblob);
   
   var fileID = file.getId();
-  var fileName = file.getName();
+  
+  //var fileName = file.getName();
+  var fileName = custfilnam+'.csv';
+  
   var downurl = "https://drive.google.com/uc?export=download&id="+fileID
   
-  var downlui = HtmlService.createHtmlOutput('<html><head><base target="_top"><link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css"></head><body><p>File has been exported to your Google Drive root folder named "Custom CSV Export".</p><p> View file there, or download the file by clicking the link below. </p> <p><a href="'+downurl+'"><b>Download file "'+fileName+'"</b></a></p></body></html>');
+  var downlui = HtmlService.createHtmlOutput('<html><head><base target="_top"><link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css"></head><body><p>File has been exported to your Google Drive root folder named "Custom CSV Export".</p><p> View file there, or download the file by clicking the link below. </p> <p><a href="'+downurl+'" target="blank" onclick="google.script.host.close()"><b>Download file "'+fileName+'"</b></a></p></body></html>');
   FormApp.getUi().showModalDialog(downlui, "Custom CSV Export - File download");  
 }
+/*
+function testFunc(){
+  var folderMeta = {mimeType : 'application/vnd.google-apps.folder', title: "Custom CSV Export"};
+  //Drive.Files.insert(folderMeta);
+ var folderlist = Drive.Files.list({
+    q : "mimeType = 'application/vnd.google-apps.folder' and trashed = false"
+  }).items;
+  Logger.log("testing... :DDDD");
+  Logger.log(folderlist);
+  Logger.log(folderlist.length);
+  for(var k = 0;k<folderlist.length;k++){
+    Logger.log(folderlist[k].title);
+    Logger.log(folderlist[k].permissions);
+    //Logger.log("ITEM ",folderlist[k])
+    //Logger.log(folderlist[k].permissions);
+  }
+}
+*/
